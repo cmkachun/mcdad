@@ -1,22 +1,9 @@
-#!name=麦当劳去开屏广告(准确版)
-#!desc=已针对 4e94c52aa0203777.mp4 路径进行精准打击。
-#!author=cmkachun
-#!icon=https://raw.githubusercontent.com/Orz-3/mini/master/Color/mcdonalds.png
-#!homepage=https://github.com/cmkachun/mcdad
-#!date=2026-01-16 10:40:00
-
 [Rule]
-# 1. 屏蔽追踪和统计域名
+# 1. 只要是 img.mcd.cn 下面的 mp4 视频，不管叫什么名字，一律屏蔽
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4(\?.*)?$, REJECT
+
+# 2. 封锁麦当劳所有已知的素材目录 (防止它换到 /assets/ 或 /video/)
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/(cms|assets|video|app)\/.*$, REJECT-DICT
+
+# 3. 封锁广告上报，让它即便播了广告也无法完成统计
 DOMAIN, tracking.mcdonalds.com.cn, REJECT
-DOMAIN, c.mcd.cn, REJECT
-DOMAIN, analytics.mcdonalds.com.cn, REJECT
-
-# 2. 精准拦截该视频地址及该目录下的所有视频 (核心规则)
-URL-REGEX, ^https?:\/\/img\.mcd\.cn\/cms\/images\/.*\.mp4$, REJECT
-
-[Script]
-# 拦截配置接口，防止 App 获取到这个视频的哈希值
-http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳配置清理
-
-[MITM]
-hostname = api.mcd.cn, img.mcd.cn
