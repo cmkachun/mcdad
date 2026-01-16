@@ -1,6 +1,6 @@
 /**
- * 麦当劳 PNG 开屏去广告脚本 - cmkachun
- * 逻辑：只移除作为开屏/广告用途的图片链接，保留正常 UI 按钮
+ * 麦当劳预下载拦截脚本 - cmkachun
+ * 策略：破坏预下载链接，防止 PNG 缓存到本地
  */
 
 let body = $response.body;
@@ -9,42 +9,45 @@ let url = $request.url;
 if (body) {
     try {
         let obj = JSON.parse(body);
-        const adKeywords = ["splash", "video", "banner", "adv", "marketing", "pop", "remind"];
-
-        // 1. 深度清理首页及模块数据
-        const deepClean = (target) => {
-            if (Array.isArray(target)) {
-                return target.filter(item => {
-                    const name = (item.sectionName || item.moduleName || "").toLowerCase();
-                    const raw = JSON.stringify(item);
-                    // 只要模块名包含广告关键词，或包含之前抓到的特定广告图，直接删除整块
-                    return !adKeywords.some(k => name.includes(k)) && 
-                           !raw.includes("dd9407f36a1db737") && 
-                           !raw.includes("3c6b06647db3f7f1");
-                }).map(deepClean);
+        
+        // 1. 深度遍历并破坏所有潜在的广告/开屏图片下载链接
+        const destroyAdLinks = (target) => {
+            if (typeof target === 'string') {
+                // 如果字符串包含图片域名，且路径里有广告/开屏关键字
+                if (target.includes("img.mcd.cn") && 
+                   (target.includes("splash") || target.includes("adv") || target.includes("pop") || target.includes("cms/images"))) {
+                    console.log(`cmkachun: 已破坏预下载链接: ${target}`);
+                    return "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png"; // 替换为 1x1 透明图
+                }
+            } else if (Array.isArray(target)) {
+                return target.map(destroyAdLinks);
             } else if (typeof target === 'object' && target !== null) {
                 for (let key in target) {
-                    // 如果字段名本身就是广告类图片链接，直接设为空串
-                    if (adKeywords.some(k => key.toLowerCase().includes(k)) && typeof target[key] === 'string') {
-                        if (target[key].includes(".png") || target[key].includes(".jpg")) {
-                            target[key] = "";
-                        }
-                    }
-                    target[key] = deepClean(target[key]);
+                    target[key] = destroyAdLinks(target[key]);
                 }
             }
             return target;
         };
 
-        if (obj.data) obj.data = deepClean(obj.data);
-        
-        // 2. 强制开启审核模式 (隐藏部分动态广告)
+        // 2. 针对首页、弹窗、提醒、版本配置等所有接口执行破坏逻辑
+        obj = destroyAdLinks(obj);
+
+        // 3. 首页模块物理删除（防止留下空白位）
+        if (obj.data && obj.data.sections) {
+            const blacklist = ["video", "banner", "splash", "adv", "marketing", "pop", "remind"];
+            obj.data.sections = obj.data.sections.filter(s => {
+                const name = (s.sectionName || "").toLowerCase();
+                return !blacklist.some(k => name.includes(k));
+            });
+        }
+
+        // 4. 强制开启审计模式
         if (obj.hasOwnProperty('audit')) obj.audit = true;
 
         body = JSON.stringify(obj);
     } catch (e) {
-        // 兜底正则：仅破坏 mp4，png 交给 JSON 逻辑处理以防误伤
-        body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.mp4/g, "");
+        // 兜底：直接替换所有可能的图片链接
+        body = body.replace(/https?:\/\/img\.mcd\.cn\/cms\/images\/[^"\s]+\.(png|jpg|gif)/g, "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png");
     }
 }
 
