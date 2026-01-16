@@ -1,23 +1,23 @@
 /**
  * 麦当劳图片体积过滤器 - cmkachun
- * 逻辑：大于 45KB 的图片判定为广告并拦截，小于此值的 UI 图标直接放行
+ * 策略：严格限制体积，只允许小图通过
  */
 
-const sizeLimit = 45 * 1024; // 阈值设定为 45KB
+const sizeLimit = 20 * 1024; // 严格限制在 20KB
 let header = $response.headers;
 let contentLength = header['Content-Length'] || header['content-length'];
 
 if (contentLength) {
     let size = parseInt(contentLength);
     if (size > sizeLimit) {
-        console.log(`cmkachun: 成功拦截大图广告 (${(size/1024).toFixed(2)} KB)`);
-        // 使用 404 拒绝大图请求
-        $done({ status: "HTTP/1.1 404 Not Found", headers: header });
+        // 大于 20KB 的 PNG/JPG 直接拦截
+        console.log(`cmkachun: 拦截大图 (体积: ${(size/1024).toFixed(2)} KB)`);
+        $done({ status: "HTTP/1.1 404 Not Found" });
     } else {
-        // 小图 UI 直接原样放行，不做任何修改
+        // 5KB 左右的小图（UI图标）直接原样放行
         $done({});
     }
 } else {
-    // 缺失长度信息的默认放行
+    // 缺失长度字段的默认放行
     $done({});
 }
