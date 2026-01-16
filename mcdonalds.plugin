@@ -1,9 +1,20 @@
-[Script]
-# 核心：拦截首页数据，消除布局占位
-http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/home script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳首页布局
+#!name=麦当劳去开屏广告(全自动版)
+#!desc=不论视频地址如何更换，只要是 img 域名的 mp4 视频一律拦截。
+#!author=cmkachun
+#!homepage=https://github.com/cmkachun/mcdad
 
-# 拦截模块版本配置
-http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳配置清理
+[Rule]
+# 1. 域名级拦截视频：只要后缀是 .mp4 就拒绝 (解决失效的关键)
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
+
+# 2. 屏蔽追踪和统计
+DOMAIN, tracking.mcdonalds.com.cn, REJECT
+DOMAIN, c.mcd.cn, REJECT
+
+[Script]
+# 拦截配置和首页接口
+http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳配置
+http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/home script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳首页布局
 
 [MITM]
 hostname = api.mcd.cn, img.mcd.cn
