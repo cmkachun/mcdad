@@ -1,6 +1,6 @@
 /**
- * 麦当劳稳定去广告脚本 - cmkachun
- * 目标：解决 api2 域名下的空白占位和视频闪现
+ * 麦当劳首页广告位物理蒸发脚本 - cmkachun
+ * 目标：彻底消除 api2 域名下的空白占位符
  */
 
 let body = $response.body;
@@ -9,34 +9,47 @@ let url = $request.url;
 if (body) {
     try {
         let obj = JSON.parse(body);
-        const adKeywords = ["video", "splash", "adv", "banner", "hot", "pop", "float"];
 
-        // 递归清理函数：扫描所有层级，删除匹配的 Key
-        const deepClean = (target) => {
-            if (Array.isArray(target)) {
-                return target.filter(item => {
-                    const name = (item.sectionName || item.moduleName || "").toLowerCase();
-                    return !adKeywords.some(k => name.includes(k));
-                }).map(deepClean);
-            } else if (typeof target === 'object' && target !== null) {
-                for (let key in target) {
-                    target[key] = deepClean(target[key]);
-                }
+        // 1. 处理首页布局接口 (api2/bff/portal/home)
+        if (url.includes("/bff/portal/home")) {
+            if (obj.data && obj.data.sections) {
+                // 增加更多的过滤关键词，确保覆盖所有广告类型
+                const blacklist = [
+                    "video", "splash", "adv", "banner", "hot", 
+                    "pop", "float", "marketing", "indexvideo"
+                ];
+                
+                obj.data.sections = obj.data.sections.filter(s => {
+                    const sName = (s.sectionName || "").toLowerCase();
+                    const sType = (s.sectionType || "").toLowerCase();
+                    // 检查名字或类型是否包含黑名单词汇
+                    const isAd = blacklist.some(k => sName.includes(k) || sType.includes(k));
+                    
+                    if (isAd) {
+                        console.log(`cmkachun: 已成功物理删除首页模块 [${sName}]`);
+                        return false; 
+                    }
+                    return true;
+                });
             }
-            return target;
-        };
-
-        // 执行清理逻辑
-        if (obj.data) {
-            obj.data = deepClean(obj.data);
         }
-        
-        // 强制同步 audit 状态
-        if (obj.hasOwnProperty('audit')) obj.audit = true;
+
+        // 2. 处理版本配置接口 (api2/bff/portal/version/mdl)
+        if (url.includes("/bff/portal/version/mdl")) {
+            if (obj.data && obj.data.modules) {
+                const moduleBlacklist = ["splash", "pop", "adv", "video", "guide"];
+                obj.data.modules = obj.data.modules.filter(m => {
+                    const mName = (m.moduleName || "").toLowerCase();
+                    return !moduleBlacklist.some(k => mName.includes(k));
+                });
+            }
+            // 开启审计模式，有助于隐藏某些广告位
+            if (obj.hasOwnProperty('audit')) obj.audit = true;
+        }
 
         body = JSON.stringify(obj);
     } catch (e) {
-        // 兜底：抹除所有 mp4 链接
+        // 兜底：抹除所有 mp4 地址
         body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.mp4/g, "");
     }
 }
