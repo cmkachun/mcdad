@@ -1,14 +1,18 @@
+#!name=麦当劳去广告(UI兼容版)
+#!desc=精准放行 UI 小图，深度隐藏开屏与空白占位。
+#!author=cmkachun
+#!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
+
 [Rule]
-# 1. 拦截 mp4 视频
+# 1. 只拦截 mp4 视频
 URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
-# 2. 拦截旋转提醒挂件
+# 2. 拦截旋转挂件
 URL-REGEX, ^https:\/\/api2\.mcd\.cn\/bff\/mc\/remind\/spin$, REJECT
-# 3. 拦截 cms/images 下的所有静态图片（JPG/PNG/GIF）
-# 注意：如果这行导致图标再次消失，请删除此行，仅靠脚本处理
-URL-REGEX, ^https?:\/\/img\.mcd\.cn\/cms\/images\/.*\.(jpg|png|gif)$, REJECT
+# 3. 封路 UDP 443
+AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
 
 [Script]
-# 全域净化
+# 核心业务接口净化
 http-response ^https:\/\/api2?\.mcd\.cn\/bff\/portal\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳分流净化
 
 [MITM]
