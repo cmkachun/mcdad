@@ -1,19 +1,20 @@
-#!name=麦当劳去广告(UI兼容版)
-#!desc=精准放行 UI 小图，深度隐藏开屏与空白占位。
+#!name=麦当劳去广告(体积分流版)
+#!desc=通过文件大小(KB)精准分流：放行 UI 小图，拦截广告大图。
 #!author=cmkachun
 #!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
 
 [Rule]
-# 1. 只拦截 mp4 视频
+# 1. 拦截 mp4 视频
 URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
-# 2. 拦截旋转挂件
-URL-REGEX, ^https:\/\/api2\.mcd\.cn\/bff\/mc\/remind\/spin$, REJECT
-# 3. 封路 UDP 443
+# 2. 封杀 UDP 443
 AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
 
 [Script]
-# 核心业务接口净化
-http-response ^https:\/\/api2?\.mcd\.cn\/bff\/portal\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳分流净化
+# 脚本 A：处理 JSON 业务数据（移除广告节点）
+http-response ^https:\/\/api2?\.mcd\.cn\/bff\/portal\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳布局优化
+
+# 脚本 B：根据体积拦截图片 (针对 img.mcd.cn)
+http-response ^https?:\/\/img\.mcd\.cn\/cms\/images\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_img_filter.js, requires-body=false, tag=麦当劳图片分流
 
 [MITM]
 hostname = api.mcd.cn, api2.mcd.cn, img.mcd.cn
