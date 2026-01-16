@@ -1,25 +1,24 @@
-#!name=麦当劳去开屏广告(整合版)
-#!desc=整合域名屏蔽、正则拦截和脚本改包，全方位去除麦当劳开屏。
+#!name=麦当劳去开屏广告(最终版)
+#!desc=针对 4e94c52aa0203777.mp4 等随机命名视频的精准拦截。
 #!author=cmkachun
 #!icon=https://raw.githubusercontent.com/Orz-3/mini/master/Color/mcdonalds.png
 #!homepage=https://github.com/cmkachun/mcdad
-#!date=2026-01-16 10:20:00
+#!date=2026-01-16 10:30:00
 
 [Rule]
 # 1. 屏蔽追踪和数据上报
 DOMAIN, tracking.mcdonalds.com.cn, REJECT
 DOMAIN, c.mcd.cn, REJECT
-DOMAIN, analytics.mcdonalds.com.cn, REJECT
 
-# 2. 精准拦截 img 域名下的视频素材 (防止误伤图标)
-URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*(splash|video|adv).*\.mp4$, REJECT
+# 2. 暴力拦截 img 域名下 cms/images 目录内的所有视频 (开屏视频常驻地)
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/cms\/images\/.*\.mp4$, REJECT
+
+# 3. 备用：如果它换了目录，只要是 mp4 就拦截
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
 
 [Script]
 # 拦截配置接口
 http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳配置清理
-
-# 拦截可能下发广告地址的静态配置
-http-response ^https:\/\/img\.mcd\.cn\/.*\.json$ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=静态资源清理
 
 [MITM]
 hostname = api.mcd.cn, img.mcd.cn
