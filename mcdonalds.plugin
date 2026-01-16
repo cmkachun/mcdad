@@ -1,19 +1,19 @@
-#!name=麦当劳去广告(图标优化版)
-#!desc=放行 UI 图标，仅精准拦截全屏开屏。
+#!name=麦当劳去广告(开屏终结版)
+#!desc=精准分流 UI 图标与开屏大图，解决 PNG 预下载开屏问题。
 #!author=cmkachun
 #!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
 
 [Rule]
-# 1. 只硬拦截视频
+# 1. 视频硬拦截
 URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
-# 2. 拦截旋转挂件
+# 2. 拦截旋转提醒
 URL-REGEX, ^https:\/\/api2\.mcd\.cn\/bff\/mc\/remind\/spin, REJECT
-# 3. 封路 UDP
+# 3. 封杀 UDP
 AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
 
 [Script]
-# 全局分流脚本
-http-response ^https:\/\/api2?\.mcd\.cn\/bff\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳全域分流
+# 全域分流净化
+http-response ^https:\/\/api2?\.mcd\.cn\/bff\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳分流净化
 
 [MITM]
 hostname = api.mcd.cn, api2.mcd.cn, img.mcd.cn
