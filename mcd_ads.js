@@ -1,6 +1,6 @@
 /**
- * 麦当劳图片精准分流脚本 - cmkachun
- * 策略：放行 UI 图标，拦截全屏开屏与广告
+ * 麦当劳去广告脚本 - 终极分流版
+ * 策略：宁可误杀大图，绝不放过开屏；全力保护 UI 图标
  */
 
 let body = $response.body;
@@ -10,50 +10,49 @@ if (body) {
     try {
         let obj = JSON.parse(body);
 
-        // 递归处理函数：区分 UI 图片和广告图片
-        const processImages = (target) => {
+        // 递归处理所有字段
+        const smartFilter = (target) => {
             if (typeof target === 'string') {
                 if (target.includes("img.mcd.cn")) {
-                    // 1. 白名单：明确是图标或菜单类的关键词，直接放行
-                    const whiteList = ["icon", "menu", "logo", "button", "category", "tab"];
-                    if (whiteList.some(k => target.toLowerCase().includes(k))) {
-                        return target; 
+                    const lowerTarget = target.toLowerCase();
+                    
+                    // 1. 【白名单】这些关键字的图片绝对是 UI，直接放行
+                    const whiteList = ["icon", "menu", "logo", "button", "category", "tab", "nav", "thumb", "avatar"];
+                    if (whiteList.some(k => lowerTarget.includes(k))) {
+                        return target;
                     }
 
-                    // 2. 黑名单：已知的广告 ID 或开屏/弹窗专用目录
-                    const blackList = [
-                        "dd9407f36a1db737", // 你之前抓到的广告图
-                        "3c6b06647db3f7f1", // 之前的 GIF
-                        "splash",           // 开屏目录
-                        "pop",              // 弹窗目录
-                        "adv"               // 广告目录
-                    ];
-                    
-                    if (blackList.some(k => target.toLowerCase().includes(k))) {
-                        console.log(`cmkachun: 已精准拦截大图广告: ${target}`);
+                    // 2. 【黑名单】只要命中这些，必死无疑
+                    const blackList = ["splash", "pop", "adv", "banner", "marketing", "video", "dd9407f36a1db737", "3c6b06647db3f7f1"];
+                    if (blackList.some(k => lowerTarget.includes(k))) {
+                        return "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png";
+                    }
+
+                    // 3. 【灰度逻辑】针对你说的“又有开屏了”，如果路径很深且没写是 icon，大概率是预下载的开屏大图
+                    // 拦截 cms/images 下所有不带 icon 关键字的资源
+                    if (lowerTarget.includes("cms/images/")) {
+                        console.log(`cmkachun: 疑似拦截到隐藏开屏大图: ${target}`);
                         return "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png";
                     }
                 }
             } else if (Array.isArray(target)) {
-                return target.map(processImages);
+                return target.map(smartFilter);
             } else if (typeof target === 'object' && target !== null) {
                 for (let key in target) {
-                    target[key] = processImages(target[key]);
+                    target[key] = smartFilter(target[key]);
                 }
             }
             return target;
         };
 
-        // 执行分流逻辑
-        obj = processImages(obj);
+        obj = smartFilter(obj);
 
-        // 首页布局物理隐藏（移除广告 Section，保留功能 Section）
-        if (url.includes("/bff/portal/home") && obj.data && obj.data.sections) {
-            const sectionBlacklist = ["video", "banner", "splash", "adv", "marketing", "pop"];
+        // 首页布局物理剔除 (继续保持)
+        if (obj.data && obj.data.sections) {
+            const sectionAdKeywords = ["video", "banner", "splash", "adv", "pop", "marketing", "remind"];
             obj.data.sections = obj.data.sections.filter(s => {
                 const name = (s.sectionName || "").toLowerCase();
-                // 只要模块名字里没包含广告关键字，就保留，防止误伤
-                return !sectionBlacklist.some(k => name.includes(k));
+                return !sectionAdKeywords.some(k => name.includes(k));
             });
         }
 
