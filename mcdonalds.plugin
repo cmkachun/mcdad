@@ -1,20 +1,19 @@
-#!name=麦当劳全能去广告 (图标找回版)
-#!desc=cmkachun 专用版：通过 JSON 逻辑保留图标位，通过文件体积拦截开屏 JPG/PNG。
+#!name=麦当劳去广告(完美找回版)
+#!desc=针对 5KB 以下小图执行精准放行，拦截大于 20KB 的 PNG/JPG 开屏。
 #!author=cmkachun
 #!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
 #!homepage=https://github.com/cmkachun/mcdad
+#!date=2026-01-17
 
 [Rule]
-# 1. 拦截 mp4 视频
 URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
-# 2. 封杀 UDP 443
 AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
 
 [Script]
-# 逻辑 A：处理 JSON (requires-body=true)
+# 修复布局与链接
 http-response ^https:\/\/api2?\.mcd\.cn\/bff\/portal\/home script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳布局优化
 
-# 逻辑 B：图片分流 (requires-body=false，只读 Header，性能最高)
+# 称重分流图片
 http-response ^https?:\/\/img\.mcd\.cn\/cms\/images\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_img_filter.js, requires-body=false, tag=麦当劳图片分流
 
 [MITM]
