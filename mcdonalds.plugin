@@ -1,9 +1,9 @@
 [Script]
-# 拦截配置接口
-http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳配置
-
-# 拦截首页布局接口 (解决空白位的核心)
+# 核心：拦截首页数据，消除布局占位
 http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/home script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳首页布局
+
+# 拦截模块版本配置
+http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳配置清理
 
 [MITM]
 hostname = api.mcd.cn, img.mcd.cn
