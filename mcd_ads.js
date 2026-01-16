@@ -1,31 +1,30 @@
 /**
- * 麦当劳首页空白隐藏脚本 - cmkachun
+ * 麦当劳首页布局深度清理 - cmkachun
+ * 目标：消除首页空白占位符
  */
 
 let body = $response.body;
 let url = $request.url;
 
 if (body) {
-    // 1. 物理抹除所有 mp4 地址
-    body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.mp4/g, "");
-
     try {
         let obj = JSON.parse(body);
 
-        // 2. 针对首页数据接口进行布局隐藏
+        // 1. 处理首页布局接口 (解决白色块的关键)
         if (url.includes("bff/portal/home")) {
             if (obj.data && obj.data.sections) {
-                // 过滤首页所有小节，剔除包含视频、开屏、动态广告的 section
+                // 过滤首页所有模块，删除视频、海报、热门推荐位
                 obj.data.sections = obj.data.sections.filter(section => {
-                    const sectionName = (section.sectionName || "").toLowerCase();
-                    const isAd = ["video", "splash", "adv", "banner", "pop"].some(k => sectionName.includes(k));
-                    if (isAd) console.log(`cmkachun: 已隐藏首页空白位 [${sectionName}]`);
-                    return !isAd;
+                    const sName = (section.sectionName || "").toLowerCase();
+                    // 只要包含这些词的布局块，直接删除数据
+                    const isAdBlock = ["video", "banner", "hot", "splash", "adv", "pop"].some(k => sName.includes(k));
+                    if (isAdBlock) console.log(`cmkachun: 已拦截布局块 [${sName}]`);
+                    return !isAdBlock;
                 });
             }
         }
 
-        // 3. 针对版本配置接口进行剔除
+        // 2. 处理版本配置接口
         if (url.includes("bff/portal/version/mdl")) {
             if (obj.data && obj.data.modules) {
                 const blacklist = ["splash", "pop", "adv", "video", "guide"];
@@ -39,7 +38,8 @@ if (body) {
 
         body = JSON.stringify(obj);
     } catch (e) {
-        console.log("cmkachun: 布局隐藏脚本执行异常");
+        // 如果 JSON 解析失败，执行基础替换
+        body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.mp4/g, "");
     }
 }
 
