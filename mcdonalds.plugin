@@ -1,22 +1,22 @@
-#!name=麦当劳去广告(首页修正版)
-#!desc=深度隐藏首页广告占位，适配 api2 域名。
+#!name=麦当劳去广告(首页布局隐藏版)
+#!desc=消除 api2 域名下的首页空白占位，适配最新视频拦截。
 #!author=cmkachun
 #!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
 #!homepage=https://github.com/cmkachun/mcdad
 
 [Rule]
-# 1. 拦截所有 mp4 视频资源
+# 1. 拦截所有 mp4 资源（防止视频闪现）
 URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
 
-# 2. 禁止 UDP 443，强制 App 回退到 TCP 接受脚本处理
+# 2. 禁止 UDP 443，强制降级到 TCP 确保脚本生效
 AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
 
-# 3. 屏蔽追踪和统计
+# 3. 统计屏蔽
 DOMAIN, tracking.mcdonalds.com.cn, REJECT
 DOMAIN, c.mcd.cn, REJECT
 
 [Script]
-# 拦截 api/api2 域名下 portal 开头的所有接口
+# 拦截所有 api/api2 域名的门户接口
 http-response ^https:\/\/api2?\.mcd\.cn\/bff\/portal\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳全域净化
 
 [MITM]
