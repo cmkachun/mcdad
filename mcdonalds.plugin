@@ -1,27 +1,19 @@
-#!name=麦当劳去广告(PNG补丁版)
-#!desc=拦截 PNG 静态开屏，物理隐藏首页空白位，适配 api2 域名。
+#!name=麦当劳去广告(预下载拦截版)
+#!desc=通过破坏预下载链接，防止 PNG 被缓存为下次开屏图。
 #!author=cmkachun
 #!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
-#!homepage=https://github.com/cmkachun/mcdad
-#!date=2026-01-16 23:00:00
 
 [Rule]
-# 1. 核心拦截：屏蔽常见的开屏资源后缀 (mp4/gif/jpg/png)
-# 锁定特定的广告 ID 拦截 (dd94... 和 3c6b...)
+# 1. 拦截已知的特定广告图
 URL-REGEX, ^https?:\/\/img\.mcd\.cn\/cms\/images\/(dd9407f36a1db737\.jpg|3c6b06647db3f7f1\.gif)$, REJECT
-# 拦截所有 mp4 视频
+# 2. 拦截所有 mp4
 URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
-
-# 2. 拦截旋转提醒和广告统计
-URL-REGEX, ^https:\/\/api2\.mcd\.cn\/bff\/mc\/remind\/spin, REJECT
-DOMAIN, tracking.mcdonalds.com.cn, REJECT
-
-# 3. 封杀 UDP 443 强制走 TCP 脚本过滤
+# 3. 禁止 UDP 443
 AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
 
 [Script]
-# 拦截核心业务接口，在数据层抹除 PNG 开屏的调用逻辑
-http-response ^https:\/\/api2?\.mcd\.cn\/bff\/(portal|mcbook|mc\/remind)\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳全域净化
+# 拦截所有 API 接口，只要返回数据里有图片下载链接，一律由脚本处理
+http-response ^https:\/\/api2?\.mcd\.cn\/bff\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳全域净化
 
 [MITM]
 hostname = api.mcd.cn, api2.mcd.cn, img.mcd.cn
