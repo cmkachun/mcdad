@@ -1,18 +1,17 @@
-[Rule]
-# 1. 精准拦截你提到的那个 jpg 图片及所有 mp4
-URL-REGEX, ^https?:\/\/img\.mcd\.cn\/cms\/images\/dd9407f36a1db737\.jpg$, REJECT
-URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
+#!name=麦当劳去首页广告(PNG/GIF/视频)
+#!desc=物理隐藏首页广告位，适配 api2 和 mcbook 接口。
+#!author=cmkachun
+#!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
 
-# 2. 禁止 UDP 443
+[Rule]
+# 1. 拦截所有 mp4 (开屏主力)
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
+# 2. 禁止 UDP，强制降级 TCP
 AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
 
-# 3. 统计屏蔽
-DOMAIN, tracking.mcdonalds.com.cn, REJECT
-DOMAIN, c.mcd.cn, REJECT
-
 [Script]
-# 拦截 api/api2 域名下 portal 开头的所有接口
-http-response ^https:\/\/api2?\.mcd\.cn\/bff\/portal\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳去广告
+# 拦截所有可能的 api/api2 业务接口
+http-response ^https:\/\/api2?\.mcd\.cn\/bff\/(portal|mcbook)\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳去广告
 
 [MITM]
 hostname = api.mcd.cn, api2.mcd.cn, img.mcd.cn
