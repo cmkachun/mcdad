@@ -1,18 +1,18 @@
-#!name=麦当劳去广告(UI找回版)
-#!desc=找回缺失的图标，精准拦截开屏大图。
+#!name=麦当劳去广告(JPG拦截增强版)
+#!desc=拦截 JPG/PNG 开屏大图，精准找回功能图标。
 #!author=cmkachun
 #!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
 
 [Rule]
-# 1. 视频硬拦截
+# 1. 拦截所有 mp4 视频
 URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
-# 2. 拦截旋转挂件（那个讨厌的转圈图标）
+# 2. 拦截旋转挂件
 URL-REGEX, ^https:\/\/api2\.mcd\.cn\/bff\/mc\/remind\/spin$, REJECT
-# 3. 封杀 UDP 443
-AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
+# 3. 针对 cms/images 下的特定广告 JPG 直接 REJECT
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/cms\/images\/.*\.jpg$, REJECT
 
 [Script]
-# 全域分流净化，拦截 portal 和 version 接口
+# 全域净化，处理 portal 下的所有业务逻辑
 http-response ^https:\/\/api2?\.mcd\.cn\/bff\/portal\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳分流净化
 
 [MITM]
