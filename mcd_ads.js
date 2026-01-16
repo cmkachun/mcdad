@@ -1,6 +1,6 @@
 /**
- * 麦当劳首页广告位精准剔除脚本 - cmkachun
- * 目标：拦截 dd94...jpg 并隐藏占位符
+ * 麦当劳首页 PNG/GIF 广告位物理蒸发脚本 - cmkachun
+ * 策略：删除 JSON 节点，让布局向上坍缩，不产生空白位
  */
 
 let body = $response.body;
@@ -10,38 +10,37 @@ if (body) {
     try {
         let obj = JSON.parse(body);
 
-        // 1. 处理首页布局接口 (针对 api2 域名)
-        if (url.includes("/bff/portal/home")) {
-            if (obj.data && obj.data.sections) {
-                // 定义所有需要剔除的模块关键词，确保包含 banner 和 marketing
-                const blacklist = ["video", "banner", "splash", "adv", "hot", "marketing", "pop", "indexvideo"];
+        // 1. 处理所有首页和内容接口 (适配 api2 和 mcbook)
+        if (url.includes("/bff/portal/home") || url.includes("/bff/mcbook/content/")) {
+            if (obj.data && (obj.data.sections || obj.data.modules)) {
+                // 定义广告位黑名单关键词
+                const blacklist = ["video", "banner", "splash", "adv", "hot", "marketing", "pop", "float", "indexvideo"];
                 
-                obj.data.sections = obj.data.sections.filter(s => {
-                    const sName = (s.sectionName || "").toLowerCase();
-                    const sType = (s.sectionType || "").toLowerCase();
-                    
-                    // 检查模块中是否包含你提到的那个特定图片链接
-                    const rawSection = JSON.stringify(s);
-                    const containsTargetImg = rawSection.includes("dd9407f36a1db737.jpg");
-                    
-                    // 匹配黑名单关键词或包含目标图片的模块
-                    const isAd = containsTargetImg || blacklist.some(k => sName.includes(k) || sType.includes(k));
-                    
-                    if (isAd) {
-                        console.log(`cmkachun: 已物理隐藏包含目标图片的模块 [${sName}]`);
-                        return false; 
-                    }
-                    return true;
-                });
+                const filterItems = (items) => {
+                    return items.filter(item => {
+                        const name = (item.sectionName || item.moduleName || "").toLowerCase();
+                        const type = (item.sectionType || "").toLowerCase();
+                        // 检查名字、类型，或是否包含你抓到的那个特定广告图片 ID
+                        const rawData = JSON.stringify(item);
+                        const isAd = blacklist.some(k => name.includes(k) || type.includes(k)) || 
+                                     rawData.includes("dd9407f36a1db737"); // 精准锁定你刚才发的那个图片
+                        
+                        if (isAd) console.log(`cmkachun: 已物理移除首页广告容器 [${name || '未知'}]`);
+                        return !isAd;
+                    });
+                };
+
+                if (obj.data.sections) obj.data.sections = filterItems(obj.data.sections);
+                if (obj.data.modules) obj.data.modules = filterItems(obj.data.modules);
             }
         }
 
         // 2. 版本配置清理
         if (url.includes("/bff/portal/version/mdl")) {
             if (obj.data && obj.data.modules) {
-                const moduleBlacklist = ["splash", "pop", "adv", "video", "guide"];
                 obj.data.modules = obj.data.modules.filter(m => {
-                    return !moduleBlacklist.some(k => (m.moduleName || "").toLowerCase().includes(k));
+                    const mName = (m.moduleName || "").toLowerCase();
+                    return !["splash", "pop", "adv", "video", "guide"].some(k => mName.includes(k));
                 });
             }
             if (obj.hasOwnProperty('audit')) obj.audit = true;
@@ -49,8 +48,8 @@ if (body) {
 
         body = JSON.stringify(obj);
     } catch (e) {
-        // 如果不是 JSON，直接抹除链接
-        body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.(mp4|jpg)/g, "");
+        // 兜底：抹除所有 mp4 地址，但不抹除图片链接（防止误伤 UI）
+        body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.mp4/g, "");
     }
 }
 
