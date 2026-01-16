@@ -1,20 +1,25 @@
-#!name=麦当劳去开屏广告
-#!desc=移除麦当劳App启动开屏视频和广告。
+#!name=麦当劳去开屏广告(整合版)
+#!desc=整合域名屏蔽、正则拦截和脚本改包，全方位去除麦当劳开屏。
 #!author=cmkachun
 #!icon=https://raw.githubusercontent.com/Orz-3/mini/master/Color/mcdonalds.png
 #!homepage=https://github.com/cmkachun/mcdad
-#!date=2026-01-16 10:05:00
+#!date=2026-01-16 10:20:00
 
 [Rule]
-# 屏蔽追踪和日志上报（减少加载延迟）
+# 1. 屏蔽追踪和数据上报
 DOMAIN, tracking.mcdonalds.com.cn, REJECT
 DOMAIN, c.mcd.cn, REJECT
-DOMAIN-SUFFIX, gdt.qq.com, REJECT
-DOMAIN-SUFFIX, pangolin-sdk-toutiao, REJECT
+DOMAIN, analytics.mcdonalds.com.cn, REJECT
+
+# 2. 精准拦截 img 域名下的视频素材 (防止误伤图标)
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*(splash|video|adv).*\.mp4$, REJECT
 
 [Script]
-# 拦截开屏配置接口并执行本地 JS
-http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳开屏配置
+# 拦截配置接口
+http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳配置清理
+
+# 拦截可能下发广告地址的静态配置
+http-response ^https:\/\/img\.mcd\.cn\/.*\.json$ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=静态资源清理
 
 [MITM]
-hostname = api.mcd.cn
+hostname = api.mcd.cn, img.mcd.cn
