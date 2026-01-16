@@ -1,5 +1,5 @@
-#!name=麦当劳去广告(完美找回版)
-#!desc=针对 5KB 以下小图执行精准放行，拦截大于 20KB 的 PNG/JPG 开屏。
+#!name=麦当劳去广告(60KB阈值版)
+#!desc=拦截 >60KB 的 PNG/JPG 资源，精准找回包括麦麦日历在内的所有 UI 图标。
 #!author=cmkachun
 #!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
 #!homepage=https://github.com/cmkachun/mcdad
@@ -10,10 +10,10 @@ URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
 AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
 
 [Script]
-# 修复布局与链接
+# 脚本 A：首页布局优化
 http-response ^https:\/\/api2?\.mcd\.cn\/bff\/portal\/home script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳布局优化
 
-# 称重分流图片
+# 脚本 B：图片体积分流 (阈值 60KB)
 http-response ^https?:\/\/img\.mcd\.cn\/cms\/images\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_img_filter.js, requires-body=false, tag=麦当劳图片分流
 
 [MITM]
