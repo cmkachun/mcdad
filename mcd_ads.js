@@ -1,6 +1,6 @@
 /**
- * 麦当劳图片分流过滤脚本 - cmkachun
- * 策略：识别开屏大图并拦截，放行 UI 小图标
+ * 麦当劳图片精准分流脚本 - cmkachun
+ * 策略：放行 UI 图标，拦截全屏开屏与广告
  */
 
 let body = $response.body;
@@ -10,47 +10,55 @@ if (body) {
     try {
         let obj = JSON.parse(body);
 
-        // 递归处理函数
-        const filterImages = (target) => {
+        // 递归处理函数：区分 UI 图片和广告图片
+        const processImages = (target) => {
             if (typeof target === 'string') {
-                // 只有指向 img.mcd.cn 的链接才处理
                 if (target.includes("img.mcd.cn")) {
-                    // 1. 明确的广告图 ID（你之前抓到的那几个）
-                    const adIds = ["dd9407f36a1db737", "3c6b06647db3f7f1"];
-                    // 2. 路径中包含 splash(开屏) 或 pop(弹窗) 的大图
-                    const isLargeAd = target.includes("splash") || target.includes("pop") || adIds.some(id => target.includes(id));
+                    // 1. 白名单：明确是图标或菜单类的关键词，直接放行
+                    const whiteList = ["icon", "menu", "logo", "button", "category", "tab"];
+                    if (whiteList.some(k => target.toLowerCase().includes(k))) {
+                        return target; 
+                    }
+
+                    // 2. 黑名单：已知的广告 ID 或开屏/弹窗专用目录
+                    const blackList = [
+                        "dd9407f36a1db737", // 你之前抓到的广告图
+                        "3c6b06647db3f7f1", // 之前的 GIF
+                        "splash",           // 开屏目录
+                        "pop",              // 弹窗目录
+                        "adv"               // 广告目录
+                    ];
                     
-                    if (isLargeAd) {
-                        console.log(`cmkachun: 已拦截预下载大图: ${target}`);
+                    if (blackList.some(k => target.toLowerCase().includes(k))) {
+                        console.log(`cmkachun: 已精准拦截大图广告: ${target}`);
                         return "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png";
                     }
-                    // 3. UI图标（拇指大小的图）通常包含 "icon", "menu", "logo" 等词，或者不含广告特征，直接放行
                 }
             } else if (Array.isArray(target)) {
-                return target.map(filterImages);
+                return target.map(processImages);
             } else if (typeof target === 'object' && target !== null) {
                 for (let key in target) {
-                    target[key] = filterImages(target[key]);
+                    target[key] = processImages(target[key]);
                 }
             }
             return target;
         };
 
-        // 执行过滤
-        obj = filterImages(obj);
+        // 执行分流逻辑
+        obj = processImages(obj);
 
-        // 彻底移除首页的广告 Section 容器，防止出现空白框
-        if (obj.data && obj.data.sections) {
-            const blacklist = ["video", "banner", "splash", "adv", "pop", "marketing"];
+        // 首页布局物理隐藏（移除广告 Section，保留功能 Section）
+        if (url.includes("/bff/portal/home") && obj.data && obj.data.sections) {
+            const sectionBlacklist = ["video", "banner", "splash", "adv", "marketing", "pop"];
             obj.data.sections = obj.data.sections.filter(s => {
                 const name = (s.sectionName || "").toLowerCase();
-                return !blacklist.some(k => name.includes(k));
+                // 只要模块名字里没包含广告关键字，就保留，防止误伤
+                return !sectionBlacklist.some(k => name.includes(k));
             });
         }
 
         body = JSON.stringify(obj);
     } catch (e) {
-        // 兜底只破坏 mp4
         body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.mp4/g, "");
     }
 }
