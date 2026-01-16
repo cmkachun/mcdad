@@ -1,14 +1,24 @@
+#!name=麦当劳去开屏(全面适配 api2)
+#!desc=针对新域名 api2.mcd.cn 的逻辑隐藏与图标更新。
+#!author=cmkachun
+#!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
+#!homepage=https://github.com/cmkachun/mcdad
+#!date=2026-01-16 11:50:00
+
 [Rule]
-# 拦截所有视频后缀，解决 75f3...mp4 这种随机地址
-URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4(\?.*)?$, REJECT
-# 封锁统计域名
+# 1. 拦截所有 mp4 资源（核心拦截）
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
+
+# 2. 禁止 UDP，防止 QUIC 绕过
+AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
+
+# 3. 统计屏蔽
 DOMAIN, tracking.mcdonalds.com.cn, REJECT
 DOMAIN, c.mcd.cn, REJECT
 
 [Script]
-# 拦截新域名的首页布局（隐藏空白的关键）和版本配置
-http-response ^https:\/\/api2?\.mcd\.cn\/bff\/portal\/(version\/mdl|home) script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳去广告
+# 拦截 api2 域名下包含 portal 的所有接口 (覆盖 home 和 version/mdl)
+http-response ^https:\/\/api2?\.mcd\.cn\/bff\/portal\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳数据净化
 
 [MITM]
-# 必须包含 api2.mcd.cn
 hostname = api.mcd.cn, api2.mcd.cn, img.mcd.cn
