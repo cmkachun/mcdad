@@ -1,6 +1,6 @@
 /**
- * 麦当劳 JPG 开屏拦截 & UI 修复脚本 - cmkachun
- * 策略：深度过滤 cms/images 下的大图 JPG，精准保护功能图标
+ * 麦当劳 PNG/JPG 全拦截脚本 - cmkachun
+ * 策略：深度清理 cms 目录下的所有静态资源，仅放行核心 UI 标识图
  */
 
 let body = $response.body;
@@ -14,30 +14,24 @@ if (body) {
             if (typeof target === 'string' && target.includes("img.mcd.cn")) {
                 const lowerTarget = target.toLowerCase();
                 
-                // 1. 【高优先级白名单】这些通常是你的“甜品站、麦咖啡”图标，必须放行
-                const whiteList = ["icon", "menu", "logo", "button", "category", "tab", "nav", "thumb", "entry", "portal", "module", "index"];
-                if (whiteList.some(k => lowerTarget.includes(k))) {
+                // 1. 【核心白名单】这些是维持“甜品站、麦咖啡”UI 正常的关键词
+                const uiWhiteList = ["icon", "menu", "logo", "button", "category", "tab", "nav", "thumb", "entry", "portal", "module", "index"];
+                if (uiWhiteList.some(k => lowerTarget.includes(k))) {
                     return target;
                 }
 
-                // 2. 【核心黑名单】拦截 JPG 大图及已知的广告 ID
-                const blackList = [
-                    "dd9407f36a1db737", // 已知广告 JPG
-                    "3c6b06647db3f7f1", // 已知广告 GIF
-                    "splash",           // 开屏关键字
-                    "pop",              // 弹窗关键字
-                    "adv",              // 广告关键字
-                    "banner"            // 横幅关键字
-                ];
-                
-                // 3. 增强逻辑：如果图片在 cms/images 目录下且是 jpg，且没在白名单里，大概率是新的开屏图
-                if (blackList.some(k => lowerTarget.includes(k)) || 
-                   (lowerTarget.includes("cms/images/") && lowerTarget.endsWith(".jpg"))) {
-                    console.log(`cmkachun: 已拦截 JPG 广告大图: ${target}`);
+                // 2. 【核心黑名单】拦截所有 cms/images 下的图片，不管后缀是 png 还是 jpg
+                // 因为正常的 UI 图标通常不在这个路径，或者名字里带有 icon
+                if (lowerTarget.includes("cms/images/")) {
+                    console.log(`cmkachun: 已拦截广告路径资源: ${target}`);
                     return "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png";
                 }
-                
-                return target;
+
+                // 3. 拦截已知的广告关键词
+                const adKeywords = ["splash", "pop", "adv", "banner", "marketing"];
+                if (adKeywords.some(k => lowerTarget.includes(k))) {
+                    return "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png";
+                }
             } else if (Array.isArray(target)) {
                 return target.map(processImages);
             } else if (typeof target === 'object' && target !== null) {
@@ -50,18 +44,19 @@ if (body) {
 
         obj = processImages(obj);
 
-        // 物理删除首页广告容器，确保布局自动向上坍缩
+        // 物理删除首页 Section 容器，防止出现你截图中那个“带旗子的汉堡”占位符
         if (obj.data && obj.data.sections) {
-            const sectionBlacklist = ["video", "banner", "splash", "adv", "marketing", "pop"];
+            const sectionBlacklist = ["video", "banner", "splash", "adv", "marketing", "pop", "indexvideo"];
             obj.data.sections = obj.data.sections.filter(s => {
                 const name = (s.sectionName || "").toLowerCase();
-                return !sectionBlacklist.some(k => name.includes(k));
+                const type = (s.sectionType || "").toLowerCase();
+                return !sectionBlacklist.some(k => name.includes(k) || type.includes(k));
             });
         }
 
         body = JSON.stringify(obj);
     } catch (e) {
-        body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.mp4/g, "");
+        body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.(mp4|png|jpg)/g, "");
     }
 }
 
