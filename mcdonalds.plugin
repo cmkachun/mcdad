@@ -1,21 +1,23 @@
-#!name=麦当劳去开屏广告(通用版)
-#!desc=不论哈希值如何更换，只要是 img.mcd.cn 域名下的 mp4 视频一律拦截。
+#!name=麦当劳去开屏广告(修复版)
+#!desc=只拦截开屏视频，恢复 App 内正常图片显示。
 #!author=cmkachun
 #!homepage=https://github.com/cmkachun/mcdad
+#!date=2026-01-16 11:00:00
 
 [Rule]
-# 1. 拦截所有来自 img 域名的视频文件 (通用规则)
-URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
+# 1. 精准拦截：只拦截域名下以 .mp4 结尾的视频文件
+# 这个正则会放行 .jpg, .png, .gif 等图片格式
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4(\?.*)?$, REJECT
 
-# 2. 拦截整个 CMS 资源目录下的视频 (备用规则)
-URL-REGEX, ^https?:\/\/img\.mcd\.cn\/cms\/images\/.*, REJECT
+# 2. 备用精准拦截：针对 cms/images 目录下的视频
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/cms\/images\/.*\.mp4$, REJECT
 
-# 3. 屏蔽广告追踪域名
+# 3. 屏蔽追踪（不影响图片）
 DOMAIN, tracking.mcdonalds.com.cn, REJECT
 DOMAIN, c.mcd.cn, REJECT
 
 [Script]
-# 修改配置接口，防止 App 获取到新的视频哈希值
+# 配置接口修改
 http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳配置清理
 
 [MITM]
