@@ -1,6 +1,6 @@
 /**
- * 麦当劳深度去广告脚本 - 适配 api2 全局拦截
- * cmkachun
+ * 麦当劳稳定去广告脚本 - cmkachun
+ * 目标：解决 api2 域名下的空白占位和视频闪现
  */
 
 let body = $response.body;
@@ -9,31 +9,34 @@ let url = $request.url;
 if (body) {
     try {
         let obj = JSON.parse(body);
+        const adKeywords = ["video", "splash", "adv", "banner", "hot", "pop", "float"];
 
-        // 1. 自动处理所有包含 sections 的接口 (首页、菜单等)
-        // 只要发现是广告、视频、Banner 类型的模块，统统删除
-        const removeAdSections = (sections) => {
-            if (!sections) return [];
-            const blacklist = ["video", "splash", "adv", "banner", "hot", "pop", "float"];
-            return sections.filter(s => {
-                const name = (s.sectionName || s.moduleName || "").toLowerCase();
-                const isAd = blacklist.some(k => name.includes(k));
-                if (isAd) console.log(`cmkachun: 已物理移除广告位: ${name}`);
-                return !isAd;
-            });
+        // 递归清理函数：扫描所有层级，删除匹配的 Key
+        const deepClean = (target) => {
+            if (Array.isArray(target)) {
+                return target.filter(item => {
+                    const name = (item.sectionName || item.moduleName || "").toLowerCase();
+                    return !adKeywords.some(k => name.includes(k));
+                }).map(deepClean);
+            } else if (typeof target === 'object' && target !== null) {
+                for (let key in target) {
+                    target[key] = deepClean(target[key]);
+                }
+            }
+            return target;
         };
 
+        // 执行清理逻辑
         if (obj.data) {
-            if (obj.data.sections) obj.data.sections = removeAdSections(obj.data.sections);
-            if (obj.data.modules) obj.data.modules = removeAdSections(obj.data.modules);
+            obj.data = deepClean(obj.data);
         }
-
-        // 2. 强制开启审计/审核模式
+        
+        // 强制同步 audit 状态
         if (obj.hasOwnProperty('audit')) obj.audit = true;
 
         body = JSON.stringify(obj);
     } catch (e) {
-        // 如果不是标准 JSON，执行强制字符串替换，破坏视频链接
+        // 兜底：抹除所有 mp4 链接
         body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.mp4/g, "");
     }
 }
