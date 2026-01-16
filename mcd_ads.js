@@ -1,5 +1,6 @@
 /**
- * 麦当劳首页空白深度隐藏脚本 (适配 api2) - cmkachun
+ * 麦当劳深度去广告脚本 - 适配 api2 全局拦截
+ * cmkachun
  */
 
 let body = $response.body;
@@ -9,36 +10,30 @@ if (body) {
     try {
         let obj = JSON.parse(body);
 
-        // 1. 针对 api2 的首页布局接口进行隐藏
-        // 目标：删除首页所有视频、广告、弹窗容器，让下方内容自动上移
-        if (url.includes("/bff/portal/home")) {
-            if (obj.data && obj.data.sections) {
-                obj.data.sections = obj.data.sections.filter(section => {
-                    const sName = (section.sectionName || "").toLowerCase();
-                    // 只要包含这些词，说明是广告位或视频位，直接从数据里彻底剔除
-                    const isAdBlock = ["video", "splash", "adv", "banner", "hot", "pop"].some(k => sName.includes(k));
-                    if (isAdBlock) console.log(`cmkachun: 已物理隐藏首页空白位 [${sName}]`);
-                    return !isAdBlock;
-                });
-            }
+        // 1. 自动处理所有包含 sections 的接口 (首页、菜单等)
+        // 只要发现是广告、视频、Banner 类型的模块，统统删除
+        const removeAdSections = (sections) => {
+            if (!sections) return [];
+            const blacklist = ["video", "splash", "adv", "banner", "hot", "pop", "float"];
+            return sections.filter(s => {
+                const name = (s.sectionName || s.moduleName || "").toLowerCase();
+                const isAd = blacklist.some(k => name.includes(k));
+                if (isAd) console.log(`cmkachun: 已物理移除广告位: ${name}`);
+                return !isAd;
+            });
+        };
+
+        if (obj.data) {
+            if (obj.data.sections) obj.data.sections = removeAdSections(obj.data.sections);
+            if (obj.data.modules) obj.data.modules = removeAdSections(obj.data.modules);
         }
 
-        // 2. 针对 api2 的模块配置接口进行清理
-        if (url.includes("/bff/portal/version/mdl")) {
-            if (obj.data && obj.data.modules) {
-                const blacklist = ["splash", "pop", "adv", "video", "guide"];
-                obj.data.modules = obj.data.modules.filter(m => {
-                    const mName = (m.moduleName || "").toLowerCase();
-                    return !blacklist.some(k => mName.includes(k));
-                });
-            }
-            // 启用审计模式
-            if (obj.hasOwnProperty('audit')) obj.audit = true;
-        }
+        // 2. 强制开启审计/审核模式
+        if (obj.hasOwnProperty('audit')) obj.audit = true;
 
         body = JSON.stringify(obj);
     } catch (e) {
-        // 如果 JSON 解析失败，则执行万能链接替换
+        // 如果不是标准 JSON，执行强制字符串替换，破坏视频链接
         body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.mp4/g, "");
     }
 }
