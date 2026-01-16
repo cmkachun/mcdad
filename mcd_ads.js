@@ -1,35 +1,35 @@
 /**
- * 麦当劳开屏全方位清理 - cmkachun
- * 针对抓到的 4e94c52aa0203777.mp4 进行优化
+ * 麦当劳通用去广告脚本 - cmkachun
+ * 逻辑：不依赖具体地址，直接通过关键词和后缀过滤
  */
 
 let body = $response.body;
-let url = $request.url;
 
 if (body) {
-    // 1. 暴力抹除：无论在哪个 JSON 里看到这个视频 ID，直接替换掉
-    if (body.includes("4e94c52aa0203777")) {
-        body = body.replace(/4e94c52aa0203777/g, "no_more_ads");
-        console.log("cmkachun: 已在数据中抹除特定广告 ID");
-    }
+    // 1. 暴力正则：把 body 里所有指向 img.mcd.cn 的 mp4 链接全部替换成空
+    // 这样即便地址变了，只要后缀是 .mp4，App 就拿不到正确的下载链接
+    body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.mp4/g, "");
 
-    // 2. 针对配置接口的结构化清理
-    if (url.includes("bff/portal/version/mdl")) {
-        try {
-            let obj = JSON.parse(body);
-            if (obj.data && obj.data.modules) {
-                // 移除所有包含广告嫌疑的模块
-                obj.data.modules = obj.data.modules.filter(item => {
-                    const mName = (item.moduleName || "").toLowerCase();
-                    return !["splash", "ad", "video", "pop", "guide"].some(k => mName.includes(k));
-                });
-            }
-            // 开启审计模式，部分 App 会因此跳过广告
-            if (obj.hasOwnProperty('audit')) obj.audit = true;
-            body = JSON.stringify(obj);
-        } catch (e) {
-            console.log("cmkachun: JSON 解析失败，执行字符串替换逻辑");
+    try {
+        let obj = JSON.parse(body);
+        
+        // 2. 遍历所有模块，只要包含广告、视频、弹窗字样的，全部干掉
+        if (obj.data && obj.data.modules) {
+            const blacklist = ["splash", "ad", "video", "pop", "guide", "loading"];
+            obj.data.modules = obj.data.modules.filter(m => {
+                const name = (m.moduleName || "").toLowerCase();
+                return !blacklist.some(keyword => name.includes(keyword));
+            });
         }
+
+        // 3. 针对某些版本，把所有的资源版本号设为 0，诱骗 App 不去下载新物料
+        if (obj.rvs) {
+            obj.rvs.forEach(item => item.rv = "0");
+        }
+
+        body = JSON.stringify(obj);
+    } catch (e) {
+        // 如果不是 JSON，维持正则替换后的 body 即可
     }
 }
 
