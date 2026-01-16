@@ -1,0 +1,20 @@
+#!name=麦当劳去开屏广告
+#!desc=移除麦当劳App启动开屏视频和广告。
+#!author=cmkachun
+#!icon=https://raw.githubusercontent.com/Orz-3/mini/master/Color/mcdonalds.png
+#!homepage=https://github.com/cmkachun/mcdad
+#!date=2026-01-16 10:05:00
+
+[Rule]
+# 屏蔽追踪和日志上报（减少加载延迟）
+DOMAIN, tracking.mcdonalds.com.cn, REJECT
+DOMAIN, c.mcd.cn, REJECT
+DOMAIN-SUFFIX, gdt.qq.com, REJECT
+DOMAIN-SUFFIX, pangolin-sdk-toutiao, REJECT
+
+[Script]
+# 拦截开屏配置接口并执行本地 JS
+http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳开屏配置
+
+[MITM]
+hostname = api.mcd.cn
