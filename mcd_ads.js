@@ -1,6 +1,6 @@
 /**
- * 麦当劳预下载拦截脚本 - cmkachun
- * 策略：破坏预下载链接，防止 PNG 缓存到本地
+ * 麦当劳图片分流过滤脚本 - cmkachun
+ * 策略：识别开屏大图并拦截，放行 UI 小图标
  */
 
 let body = $response.body;
@@ -9,45 +9,49 @@ let url = $request.url;
 if (body) {
     try {
         let obj = JSON.parse(body);
-        
-        // 1. 深度遍历并破坏所有潜在的广告/开屏图片下载链接
-        const destroyAdLinks = (target) => {
+
+        // 递归处理函数
+        const filterImages = (target) => {
             if (typeof target === 'string') {
-                // 如果字符串包含图片域名，且路径里有广告/开屏关键字
-                if (target.includes("img.mcd.cn") && 
-                   (target.includes("splash") || target.includes("adv") || target.includes("pop") || target.includes("cms/images"))) {
-                    console.log(`cmkachun: 已破坏预下载链接: ${target}`);
-                    return "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png"; // 替换为 1x1 透明图
+                // 只有指向 img.mcd.cn 的链接才处理
+                if (target.includes("img.mcd.cn")) {
+                    // 1. 明确的广告图 ID（你之前抓到的那几个）
+                    const adIds = ["dd9407f36a1db737", "3c6b06647db3f7f1"];
+                    // 2. 路径中包含 splash(开屏) 或 pop(弹窗) 的大图
+                    const isLargeAd = target.includes("splash") || target.includes("pop") || adIds.some(id => target.includes(id));
+                    
+                    if (isLargeAd) {
+                        console.log(`cmkachun: 已拦截预下载大图: ${target}`);
+                        return "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png";
+                    }
+                    // 3. UI图标（拇指大小的图）通常包含 "icon", "menu", "logo" 等词，或者不含广告特征，直接放行
                 }
             } else if (Array.isArray(target)) {
-                return target.map(destroyAdLinks);
+                return target.map(filterImages);
             } else if (typeof target === 'object' && target !== null) {
                 for (let key in target) {
-                    target[key] = destroyAdLinks(target[key]);
+                    target[key] = filterImages(target[key]);
                 }
             }
             return target;
         };
 
-        // 2. 针对首页、弹窗、提醒、版本配置等所有接口执行破坏逻辑
-        obj = destroyAdLinks(obj);
+        // 执行过滤
+        obj = filterImages(obj);
 
-        // 3. 首页模块物理删除（防止留下空白位）
+        // 彻底移除首页的广告 Section 容器，防止出现空白框
         if (obj.data && obj.data.sections) {
-            const blacklist = ["video", "banner", "splash", "adv", "marketing", "pop", "remind"];
+            const blacklist = ["video", "banner", "splash", "adv", "pop", "marketing"];
             obj.data.sections = obj.data.sections.filter(s => {
                 const name = (s.sectionName || "").toLowerCase();
                 return !blacklist.some(k => name.includes(k));
             });
         }
 
-        // 4. 强制开启审计模式
-        if (obj.hasOwnProperty('audit')) obj.audit = true;
-
         body = JSON.stringify(obj);
     } catch (e) {
-        // 兜底：直接替换所有可能的图片链接
-        body = body.replace(/https?:\/\/img\.mcd\.cn\/cms\/images\/[^"\s]+\.(png|jpg|gif)/g, "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png");
+        // 兜底只破坏 mp4
+        body = body.replace(/https?:\/\/img\.mcd\.cn\/[^"\s]+\.mp4/g, "");
     }
 }
 
