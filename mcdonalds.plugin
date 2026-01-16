@@ -1,24 +1,24 @@
-#!name=麦当劳去开屏(全面适配 api2)
-#!desc=针对新域名 api2.mcd.cn 的逻辑隐藏与图标更新。
+#!name=麦当劳去开屏(全域稳定版)
+#!desc=适配 api/api2/img 域名，强制 TCP 降级，解决拦截不稳定问题。
 #!author=cmkachun
 #!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
 #!homepage=https://github.com/cmkachun/mcdad
-#!date=2026-01-16 11:50:00
 
 [Rule]
-# 1. 拦截所有 mp4 资源（核心拦截）
-URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
-
-# 2. 禁止 UDP，防止 QUIC 绕过
+# 1. 【核心】封杀 UDP，强制 App 走 TCP。这样它才会被脚本捕获，不再产生“有时有”的情况
 AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
 
-# 3. 统计屏蔽
+# 2. 拦截所有 mp4 资源
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4$, REJECT
+
+# 3. 屏蔽追踪
 DOMAIN, tracking.mcdonalds.com.cn, REJECT
 DOMAIN, c.mcd.cn, REJECT
 
 [Script]
-# 拦截 api2 域名下包含 portal 的所有接口 (覆盖 home 和 version/mdl)
-http-response ^https:\/\/api2?\.mcd\.cn\/bff\/portal\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳数据净化
+# 拦截所有 API 域名的 portal 路径
+http-response ^https:\/\/api\d?\.mcd\.cn\/bff\/portal\/ script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳全域净化
 
 [MITM]
+# 确保包含所有可能出现的域名
 hostname = api.mcd.cn, api2.mcd.cn, img.mcd.cn
