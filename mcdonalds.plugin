@@ -1,24 +1,6 @@
-#!name=麦当劳去开屏广告(修复版)
-#!desc=只拦截开屏视频，恢复 App 内正常图片显示。
-#!author=cmkachun
-#!homepage=https://github.com/cmkachun/mcdad
-#!date=2026-01-16 11:00:00
-
-[Rule]
-# 1. 精准拦截：只拦截域名下以 .mp4 结尾的视频文件
-# 这个正则会放行 .jpg, .png, .gif 等图片格式
-URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4(\?.*)?$, REJECT
-
-# 2. 备用精准拦截：针对 cms/images 目录下的视频
-URL-REGEX, ^https?:\/\/img\.mcd\.cn\/cms\/images\/.*\.mp4$, REJECT
-
-# 3. 屏蔽追踪（不影响图片）
-DOMAIN, tracking.mcdonalds.com.cn, REJECT
-DOMAIN, c.mcd.cn, REJECT
-
 [Script]
-# 配置接口修改
-http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳配置清理
+# 拦截版本配置（控制是否显示）
+http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/version\/mdl script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳配置
 
-[MITM]
-hostname = api.mcd.cn, img.mcd.cn
+# 如果空白还在，请尝试增加这个接口拦截（首页数据）
+http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/home script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳首页
