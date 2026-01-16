@@ -1,16 +1,21 @@
-#!name=麦当劳去开屏(逻辑隐藏版)
-#!desc=通过逻辑抹除隐藏开屏，不误伤 UI 图片。
+#!name=麦当劳去开屏广告(图标版)
+#!desc=逻辑抹除开屏与首页占位，不误伤 UI 图片。
 #!author=cmkachun
+#!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
 #!homepage=https://github.com/cmkachun/mcdad
+#!date=2026-01-16 11:30:00
 
 [Rule]
-# 只屏蔽统计和广告追踪
+# 1. 屏蔽追踪和统计域名（不影响图片加载）
 DOMAIN, tracking.mcdonalds.com.cn, REJECT
 DOMAIN, c.mcd.cn, REJECT
+DOMAIN, analytics.mcdonalds.com.cn, REJECT
 
 [Script]
-# 拦截所有核心数据接口
+# 2. 核心：通过脚本修改数据结构，实现逻辑隐藏
+# 同时拦截版本配置和首页布局接口
 http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/(version\/mdl|home) script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳去广告
 
 [MITM]
+# 必须包含这两个域名，否则脚本无法处理数据
 hostname = api.mcd.cn, img.mcd.cn
