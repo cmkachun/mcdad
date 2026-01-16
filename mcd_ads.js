@@ -1,6 +1,6 @@
 /**
- * 麦当劳 PNG/JPG 全拦截脚本 - cmkachun
- * 策略：深度清理 cms 目录下的所有静态资源，仅放行核心 UI 标识图
+ * 麦当劳图片分流净化脚本 (v2.0) - cmkachun
+ * 策略：拦截 cms 路径下的大图/广告，放行所有 UI 功能图标
  */
 
 let body = $response.body;
@@ -14,24 +14,31 @@ if (body) {
             if (typeof target === 'string' && target.includes("img.mcd.cn")) {
                 const lowerTarget = target.toLowerCase();
                 
-                // 1. 【核心白名单】这些是维持“甜品站、麦咖啡”UI 正常的关键词
-                const uiWhiteList = ["icon", "menu", "logo", "button", "category", "tab", "nav", "thumb", "entry", "portal", "module", "index"];
-                if (uiWhiteList.some(k => lowerTarget.includes(k))) {
+                // 1. 【放行白名单】这些关键词对应你截图中的“甜品站、麦咖啡”等金刚位小图
+                const whiteList = [
+                    "icon", "menu", "logo", "button", "category", "tab", 
+                    "nav", "thumb", "entry", "portal", "module", "index"
+                ];
+                if (whiteList.some(k => lowerTarget.includes(k))) {
                     return target;
                 }
 
-                // 2. 【核心黑名单】拦截所有 cms/images 下的图片，不管后缀是 png 还是 jpg
-                // 因为正常的 UI 图标通常不在这个路径，或者名字里带有 icon
-                if (lowerTarget.includes("cms/images/")) {
-                    console.log(`cmkachun: 已拦截广告路径资源: ${target}`);
+                // 2. 【精准拦截黑名单】拦截特定的广告 ID 和大图目录
+                // 重点拦截：splash(开屏), pop(弹窗), adv(广告)
+                const blackList = ["dd9407f36a1db737", "3c6b06647db3f7f1", "splash", "pop", "adv", "banner"];
+                
+                if (blackList.some(k => lowerTarget.includes(k))) {
+                    console.log(`cmkachun: 已拦截广告大图: ${target}`);
                     return "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png";
                 }
 
-                // 3. 拦截已知的广告关键词
-                const adKeywords = ["splash", "pop", "adv", "banner", "marketing"];
-                if (adKeywords.some(k => lowerTarget.includes(k))) {
+                // 3. 兜底逻辑：如果是在 cms/images 目录下，且没有图标特征的 PNG/JPG，视为潜在广告拦截
+                // 如果发现 UI 依然缺失，可将此处改为 return target;
+                if (lowerTarget.includes("cms/images/")) {
                     return "https://raw.githubusercontent.com/cmkachun/mcdad/main/pixel.png";
                 }
+                
+                return target;
             } else if (Array.isArray(target)) {
                 return target.map(processImages);
             } else if (typeof target === 'object' && target !== null) {
@@ -44,13 +51,13 @@ if (body) {
 
         obj = processImages(obj);
 
-        // 物理删除首页 Section 容器，防止出现你截图中那个“带旗子的汉堡”占位符
+        // 4. 物理隐藏首页的广告 Section 容器，防止出现空白块
         if (obj.data && obj.data.sections) {
-            const sectionBlacklist = ["video", "banner", "splash", "adv", "marketing", "pop", "indexvideo"];
+            const sectionBlacklist = ["video", "banner", "splash", "adv", "marketing", "pop"];
             obj.data.sections = obj.data.sections.filter(s => {
                 const name = (s.sectionName || "").toLowerCase();
-                const type = (s.sectionType || "").toLowerCase();
-                return !sectionBlacklist.some(k => name.includes(k) || type.includes(k));
+                // 只要模块名字里没带广告关键字，就保留，确保 UI 布局完整
+                return !sectionBlacklist.some(k => name.includes(k));
             });
         }
 
