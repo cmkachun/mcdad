@@ -1,21 +1,21 @@
-#!name=麦当劳去开屏广告(图标版)
-#!desc=逻辑抹除开屏与首页占位，不误伤 UI 图片。
+#!name=麦当劳去开屏(强力硬拦截)
+#!desc=解决视频更换导致失效的问题。
 #!author=cmkachun
 #!icon=https://raw.githubusercontent.com/Semporia/Hand-Painted-icon/master/Social_Media/Meetup.png
 #!homepage=https://github.com/cmkachun/mcdad
-#!date=2026-01-16 11:30:00
 
 [Rule]
-# 1. 屏蔽追踪和统计域名（不影响图片加载）
-DOMAIN, tracking.mcdonalds.com.cn, REJECT
-DOMAIN, c.mcd.cn, REJECT
-DOMAIN, analytics.mcdonalds.com.cn, REJECT
+# 1. 封杀 UDP，强制 App 回退到 TCP 接受脚本拦截
+AND, ((DEST-PORT, 443), (PROTOCOL, UDP)), REJECT
+
+# 2. 域名级硬屏蔽（不再用正则，直接屏蔽该目录下所有视频请求）
+DOMAIN-SET, https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_block.list, REJECT
+
+# 3. 针对你抓到的具体域名进行最高优先级拦截
+URL-REGEX, ^https?:\/\/img\.mcd\.cn\/.*\.mp4, REJECT
 
 [Script]
-# 2. 核心：通过脚本修改数据结构，实现逻辑隐藏
-# 同时拦截版本配置和首页布局接口
-http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/(version\/mdl|home) script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳去广告
+http-response ^https:\/\/api\.mcd\.cn\/bff\/portal\/(version\/mdl|home) script-path=https://raw.githubusercontent.com/cmkachun/mcdad/main/mcd_ads.js, requires-body=true, tag=麦当劳数据清理
 
 [MITM]
-# 必须包含这两个域名，否则脚本无法处理数据
 hostname = api.mcd.cn, img.mcd.cn
